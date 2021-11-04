@@ -1,21 +1,19 @@
 use super::event::{Event, Listener};
 use super::graph::NodeGraph;
-use super::NODE_GRAPH;
-use iced::{executor, Application, Clipboard, Command, Element, Error, Settings};
+use iced::{executor, Application, Clipboard, Command, Element, Error, Settings, Subscription};
 use std::cell::RefCell;
 use std::collections::HashMap;
+use iced_futures::subscription::Recipe;
+use std::hash::{Hash, Hasher};
 
 pub fn create_window(title: &'static str) -> Result<(), Error> {
     // DenoApplication::run(Settings::with_flags(Flags { title, nodes }))
-    NODE_GRAPH.with(|nodes| {
-        DenoApplication::run(Settings::with_flags(Flags { title }))
-    })
+    DenoApplication::run(Settings::with_flags(Flags { title }))
 }
 
 pub struct DenoApplication {
     title: &'static str,
-    listeners: HashMap<u64, Listener>,
-    // pub nodes: RefCell<NodeGraph>,
+    nodes: NodeGraph,
 }
 
 pub struct Flags {
@@ -29,11 +27,9 @@ impl Application for DenoApplication {
     type Flags = Flags;
 
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        let mut listeners = HashMap::new();
         let mut app = Self {
             title: flags.title,
-            listeners
-            // nodes: flags.nodes,
+            nodes: NodeGraph::new(),
         };
         // NODE_GRAPH.with(|nodes| {
         //     nodes.borrow_mut().update = Some(Box::new(|| {
@@ -55,10 +51,10 @@ impl Application for DenoApplication {
     }
 
     fn view(&mut self) -> Element<Event> {
-        NODE_GRAPH.with(move |nodes| {
-            let nodes_ref = nodes.borrow_mut();
-            let nodes_copy = nodes_ref.body.clone();
-            NodeGraph::build_node(&mut self.listeners, nodes_copy)
-        })
+        NodeGraph::build_node(&mut self.nodes.body)
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        Subscription::none()
     }
 }

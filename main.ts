@@ -14,14 +14,14 @@ export const library = await Plug.prepare(options, {
         parameters: ["buffer", "usize"],
         result: "void",
     },
-    ops_add_child_element: {
-        parameters: ["u64", "u32"],
-        result: "u64",
-    },
-    ops_set_state: {
-        parameters: ["u32", "u32", "buffer", "usize"],
-        result: "void",
-    },
+    // ops_add_child_element: {
+    //     parameters: ["u64", "u32"],
+    //     result: "u64",
+    // },
+    // ops_set_state: {
+    //     parameters: ["u32", "u32", "buffer", "usize"],
+    //     result: "void",
+    // },
 });
 
 export type Library = typeof library

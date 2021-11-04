@@ -13,3 +13,7 @@ pub enum State {
 pub enum Listener {
     Button(button::State)
 }
+
+pub struct Poll {
+    
+}

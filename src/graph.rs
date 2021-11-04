@@ -3,6 +3,7 @@ use super::nodes::{DivNode, Node, NodeProto, Nodes};
 use super::state::Align;
 use iced::{Button, Column, Element, Row, Text};
 use rand::{Rng, rngs};
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 pub struct NodeGraph {
@@ -53,8 +54,8 @@ impl NodeGraph {
     }
 
     pub fn add_child(&mut self, parent: u64, child: Nodes) -> u64 {
-        let node1 = self.lookup(parent);
         let proto = self.create_proto();
+        let node1 = self.lookup(parent);
         let node2 = Node::from(proto, child);
         match node1 {
             Node::Div(div) => div.children.push(node2),
@@ -66,24 +67,20 @@ impl NodeGraph {
         proto
     }
 
-    pub fn build_node<'a>(
-        listeners: &'a mut HashMap<u64, Listener>, 
-        node: Node
-    ) -> Element<'a, Event> {
+    pub fn build_node<'a>(node: &'a mut Node) -> Element<'a, Event> {
         match node {
             Node::Div(div) => match div.align {
                 Align::Horizontal => {
                     let mut row = Row::new();
-                    for child in div.children {
-                        row = row.push(NodeGraph::build_node(listeners, child));
+                    for child in &mut div.children {
+                        row = row.push(NodeGraph::build_node(child));
                     };
                     row.into()
                 },
                 Align::Vertical => Column::new().into()
             },
             Node::Button(button) => {
-                let Listener::Button(listener) = listeners.get_mut(&button.rid).unwrap();
-                Button::new(listener, Text::new(button.text.clone())).into()
+                Button::new(&mut button.state, Text::new(button.text.clone())).into()
             },
             Node::Text(text) => {
                 Text::new(text.text.clone()).into()

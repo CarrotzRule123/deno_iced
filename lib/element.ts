@@ -18,11 +18,11 @@ export class Element {
     ) { }
 
     public set(state: State, value: any) {
-        library.symbols.ops_add_child_element()
+        // library.symbols.ops_add_child_element()
     }
 
     public addElement(element: Element) {
-        library.symbols.ops_add_child_element(this.rid, element.type)
+        // library.symbols.ops_add_child_element(this.rid, element.type)
     }
 }
 

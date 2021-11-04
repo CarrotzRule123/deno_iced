@@ -4,7 +4,7 @@ import { ElementFromName } from "./util/util.ts";
 
 export class Document {
     private elements: Element[] = []
-    public body: DivElement
+    // public body: DivElement
 
     constructor(title: string) {
         const encoder = new TextEncoder()
@@ -15,6 +15,6 @@ export class Document {
 
     public createElement(type: Elements) {
         this.elements.push(new Element(this.elements.length, ElementFromName(type)))
-        library.symbols.ops_create_element(type)
+        // library.symbols.ops_create_element(type)
     }
 }
