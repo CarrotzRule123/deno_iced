@@ -1,85 +1,12 @@
-use iced_futures::subscription::Recipe;
-use std::hash::Hasher;
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll, Waker};
+use std::hash::{Hash, Hasher};
 use futures::stream::BoxStream;
+use iced_futures::subscription::Recipe;
 
-
-pub struct Poll<H> {
-    hash: H,
-}
-
-impl <H>Recipe<H, PollEvent> for Poll<H> where H: Hasher {
-    type Output = PollEvent;
-
-    fn hash(&self, state: &mut H) {
-        struct Marker;
-        std::any::TypeId::of::<Marker>().hash(state);
-
-        self.hash.hash(state);
-    }
-
-    fn stream(
-        self: Box<Self>,
-        _input: futures::stream::BoxStream<'static, I>,
-    ) -> futures::stream::BoxStream<'static, Self::Output> {
-        Box::pin(futures::stream::unfold(
-            State::Ready(self.url),
-            |state| async move {
-                match state {
-                    PollEvent::Ready() => {
-                        match response {
-                            Ok(response) => {
-                            }
-                            Err(_) => {
-                            }
-                        }
-                    }
-                    PollEvent::Pending {
-                        mut response,
-                        total,
-                        downloaded,
-                    } => match response.chunk().await {
-                        Ok(Some(chunk)) => {
-                            let downloaded = downloaded + chunk.len() as u64;
-
-                            let percentage =
-                                (downloaded as f32 / total as f32) * 100.0;
-
-                            Some((
-                                Progress::Advanced(percentage),
-                                State::Downloading {
-                                    response,
-                                    total,
-                                    downloaded,
-                                },
-                            ))
-                        }
-                        Ok(None) => Some((Progress::Finished, State::Finished)),
-                        Err(_) => Some((Progress::Errored, State::Finished)),
-                    },
-                    PollEvent::Fulfilled => {
-                        let _: () = iced::futures::future::pending().await;
-                        None
-                    }
-                }
-            },
-        ))
-    }
-}
-
-pub enum PollEvent {
-    Ready,
-    Pending,
-    Fulfilled
-}
-
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::{Arc, Mutex},
-    task::{Context, Poll, Waker},
-    thread,
-    time::Duration,
-};
+use super::RESOURCES;
 
 pub struct UpdateFuture {
     shared_state: Arc<Mutex<SharedState>>,
@@ -87,15 +14,16 @@ pub struct UpdateFuture {
 
 struct SharedState {
     completed: bool,
+    update: Update,
     waker: Option<Waker>,
 }
 
-impl Future for UpdateFuture {
-    type Output = ();
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+impl Future for &UpdateFuture {
+    type Output = Update;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Update> {
         let mut shared_state = self.shared_state.lock().unwrap();
         if shared_state.completed {
-            Poll::Ready(())
+            Poll::Ready(Update::AddChild)
         } else {
             shared_state.waker = Some(cx.waker().clone());
             Poll::Pending
@@ -104,31 +32,53 @@ impl Future for UpdateFuture {
 }
 
 impl UpdateFuture {
-    pub fn new(duration: Duration) -> Self {
+    pub fn new() -> Self {
         let shared_state = Arc::new(Mutex::new(SharedState {
             completed: false,
+            update: Update::AddChild,
             waker: None,
         }));
-
-        let thread_shared_state = shared_state.clone();
-        thread::spawn(move || {
-            thread::sleep(duration);
-            let mut shared_state = thread_shared_state.lock().unwrap();
-            shared_state.completed = true;
-            if let Some(waker) = shared_state.waker.take() {
-                waker.wake()
-            }
-        });
-
-        UpdateFuture { shared_state }
+        Self { shared_state }
     }
 
-    pub fn resolve() {
-        let thread_shared_state = shared_state.clone();
+    pub fn update(&self, update: Update) {
+        let thread_shared_state = self.shared_state.clone();
         let mut shared_state = thread_shared_state.lock().unwrap();
         shared_state.completed = true;
+        shared_state.update = update;
         if let Some(waker) = shared_state.waker.take() {
             waker.wake()
         }
     }
+}
+
+pub struct UpdateSub {}
+
+impl<H, E> Recipe<H, E> for UpdateSub where H: Hasher {
+    type Output = Update;
+
+    fn hash(&self, state: &mut H) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+        // self.id.hash(state);
+    }
+
+    fn stream(
+        self: Box<Self>,
+        _input: BoxStream<'static, E>,
+    ) -> BoxStream<'static, Self::Output> {
+        Box::pin(futures::stream::unfold(
+            true,
+            move |_| async move {
+                let future = &RESOURCES.update;
+                Some((future.await, true))
+            },
+        ))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Update {
+    AddChild,
+    SetState,
 }

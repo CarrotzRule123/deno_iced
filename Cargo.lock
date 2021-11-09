@@ -444,8 +444,10 @@ dependencies = [
 name = "deno_iced"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "iced",
  "iced_futures",
+ "lazy_static",
  "num-derive",
  "num-traits",
  "rand",

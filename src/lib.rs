@@ -1,6 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(unreachable_patterns)]
+
+use num_traits::FromPrimitive;
+use lazy_static::lazy_static;
+use std::future::Future;
+
 mod app;
 mod event;
 mod graph;
@@ -9,13 +14,12 @@ mod state;
 mod update;
 use app::create_window;
 use graph::NodeGraph;
-use num_traits::FromPrimitive;
 use state::State;
-use std::cell::RefCell;
+use update::{UpdateFuture, Update};
 
-// thread_local! {
-//     static NODE_GRAPH: RefCell<NodeGraph> = RefCell::new(NodeGraph::new());
-// }
+lazy_static! {
+    pub static ref RESOURCES: Resources = Resources::new();
+}
 
 #[no_mangle]
 pub extern "C" fn ops_create_window(ptr: *const u8, len: usize) {
@@ -26,22 +30,24 @@ pub extern "C" fn ops_create_window(ptr: *const u8, len: usize) {
 
 // #[no_mangle]
 // pub extern "C" fn ops_create_element() {
-//     NODE_GRAPH.with(|nodes| {
-//         let mut nodesref = nodes.borrow_mut();
+//     // NODE_GRAPH.with(|nodes| {
+//     //     let mut nodesref = nodes.borrow_mut();
 
-//         nodesref.create_proto()
-//     });
+//     //     nodesref.create_proto()
+//     // });
 // }
 
-// #[no_mangle]
-// pub extern "C" fn ops_add_child_element(id: u64, el: u32) -> u64 {
-//     NODE_GRAPH.with(|nodes| {
-//         let mut nodesref = nodes.borrow_mut();
+#[no_mangle]
+pub extern "C" fn ops_add_child_element(id: u64, el: u32) {
+    // let element = FromPrimitive::from_u32(el).unwrap();
+    RESOURCES.update.update(Update::AddChild);
+    // NODE_GRAPH.with(|nodes| {
+    //     let mut nodesref = nodes.borrow_mut();
 
-//         let element = FromPrimitive::from_u32(el).unwrap();
-//         nodesref.add_child(id, element)
-//     })
-// }
+    //     let element = FromPrimitive::from_u32(el).unwrap();
+    //     nodesref.add_child(id, element)
+    // })
+}
 
 // #[no_mangle]
 // pub extern "C" fn ops_set_state(id: u64, state: u32, ptr: *const u8, len: usize) {
@@ -57,3 +63,15 @@ pub extern "C" fn ops_create_window(ptr: *const u8, len: usize) {
 
 #[no_mangle]
 pub extern "C" fn destroy_element() {}
+
+struct Resources {
+    update: UpdateFuture,
+}
+
+impl Resources {
+    pub fn new() -> Self {
+        Self {
+            update: UpdateFuture::new()
+        }
+    }
+}

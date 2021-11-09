@@ -1,14 +1,18 @@
-use super::event::{Event, Listener};
-use super::graph::NodeGraph;
 use iced::{executor, Application, Clipboard, Command, Element, Error, Settings, Subscription};
+use iced_futures::subscription::Recipe;
+use lazy_static::lazy_static;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use iced_futures::subscription::Recipe;
 use std::hash::{Hash, Hasher};
 
+use super::event::{Event, Listener};
+use super::graph::NodeGraph;
+use super::update::{Update, UpdateFuture, UpdateSub};
+use super::RESOURCES;
+
 pub fn create_window(title: &'static str) -> Result<(), Error> {
-    // DenoApplication::run(Settings::with_flags(Flags { title, nodes }))
     DenoApplication::run(Settings::with_flags(Flags { title }))
+    // DenoApplication::run(Settings::with_flags(Flags { title }))
 }
 
 pub struct DenoApplication {
@@ -23,22 +27,14 @@ pub struct Flags {
 
 impl Application for DenoApplication {
     type Executor = executor::Default;
-    type Message = Event;
+    type Message = Message;
     type Flags = Flags;
 
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        let mut app = Self {
+        let app = Self {
             title: flags.title,
             nodes: NodeGraph::new(),
         };
-        // NODE_GRAPH.with(|nodes| {
-        //     nodes.borrow_mut().update = Some(Box::new(|| {
-        //         app.view();
-        //     }));
-        // });
-        // app.nodes.borrow_mut().update = Some(Box::new(|| {
-        //     app.view();
-        // }));
         (app, Command::none())
     }
 
@@ -46,15 +42,21 @@ impl Application for DenoApplication {
         String::from(self.title)
     }
 
-    fn update(&mut self, _message: Event, _clipboard: &mut Clipboard) -> Command<Event> {
+    fn update(&mut self, _message: Message, _clipboard: &mut Clipboard) -> Command<Message> {
         Command::none()
     }
 
-    fn view(&mut self) -> Element<Event> {
+    fn view(&mut self) -> Element<Message> {
         NodeGraph::build_node(&mut self.nodes.body)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        Subscription::none()
+        Subscription::from_recipe(UpdateSub {}).map(Message::Update)
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Message {
+    Update(Update),
+    Event(Event),
 }

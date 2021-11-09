@@ -1,10 +1,12 @@
-use super::event::{Event, Listener};
-use super::nodes::{DivNode, Node, NodeProto, Nodes};
-use super::state::Align;
 use iced::{Button, Column, Element, Row, Text};
 use rand::{Rng, rngs};
 use std::cell::RefCell;
 use std::collections::HashMap;
+
+use super::event::{Event, Listener};
+use super::nodes::{DivNode, Node, NodeProto, Nodes};
+use super::state::Align;
+use super::app::Message;
 
 pub struct NodeGraph {
     pub update: Option<Box<dyn FnMut()>>,
@@ -67,7 +69,7 @@ impl NodeGraph {
         proto
     }
 
-    pub fn build_node<'a>(node: &'a mut Node) -> Element<'a, Event> {
+    pub fn build_node<'a>(node: &'a mut Node) -> Element<'a, Message> {
         match node {
             Node::Div(div) => match div.align {
                 Align::Horizontal => {
