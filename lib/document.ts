@@ -1,20 +1,23 @@
-import { library } from "../main.ts";
-import { Element, Elements } from "./element.ts";
-import { ElementFromName } from "./util/util.ts";
+import { library } from "./bindings.ts";
+import { Element, ElementType } from "./element.ts";
+import { DivElement } from "./elements/div.ts";
+import { ElementId } from "./util/util.ts";
 
-export class Document {
-    private elements: Element[] = []
-    // public body: DivElement
+export class Document extends Element {
+    public _rid: number
+    public body: DivElement
 
     constructor(title: string) {
-        const encoder = new TextEncoder()
-        const buffer = encoder.encode(title);
+        super(ElementType.Div)
+        this._rid = ElementId()
+        this.body = new DivElement()
 
-        library.symbols.ops_create_window(buffer, buffer.length)
+        this.open(title)
     }
 
-    public createElement(type: Elements) {
-        this.elements.push(new Element(this.elements.length, ElementFromName(type)))
-        // library.symbols.ops_create_element(type)
+    public async open(title: string) {
+        const encoder = new TextEncoder()
+        const buffer = encoder.encode(title);
+        await library.symbols.ops_create_window(this._rid, buffer, buffer.length)
     }
 }

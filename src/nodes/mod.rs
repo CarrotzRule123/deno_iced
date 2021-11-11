@@ -9,7 +9,7 @@ use num_derive::FromPrimitive;
 use super::state::State;
 
 
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive, Debug, Clone, Copy)]
 pub enum Nodes {
     Button = 0,
     Text,

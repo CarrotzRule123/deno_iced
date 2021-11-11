@@ -1,8 +1,4 @@
-import { Elements, ElementType } from "../element.ts";
-
-export function ElementFromName(name: Elements): ElementType {
-    return {
-        "button": ElementType.Button,
-        "text": ElementType.Text,
-    }[name]
+// Naive implementation
+export function ElementId(): number {
+    return Math.floor(Math.random()*1e10) >>> 0;
 }

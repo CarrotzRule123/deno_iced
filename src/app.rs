@@ -10,8 +10,8 @@ use super::graph::NodeGraph;
 use super::update::{Update, UpdateFuture, UpdateSub};
 use super::RESOURCES;
 
-pub fn create_window(title: &'static str) -> Result<(), Error> {
-    DenoApplication::run(Settings::with_flags(Flags { title }))
+pub fn create_window(id: u64, title: &'static str) -> Result<(), Error> {
+    DenoApplication::run(Settings::with_flags(Flags { title, id }))
     // DenoApplication::run(Settings::with_flags(Flags { title }))
 }
 
@@ -22,6 +22,7 @@ pub struct DenoApplication {
 
 pub struct Flags {
     title: &'static str,
+    id: u64
     // pub nodes: RefCell<NodeGraph>,
 }
 
@@ -33,7 +34,7 @@ impl Application for DenoApplication {
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let app = Self {
             title: flags.title,
-            nodes: NodeGraph::new(),
+            nodes: NodeGraph::new(flags.id),
         };
         (app, Command::none())
     }

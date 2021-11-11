@@ -7,9 +7,10 @@ use futures::stream::BoxStream;
 use iced_futures::subscription::Recipe;
 
 use super::RESOURCES;
+use super::nodes::Nodes;
 
 pub struct UpdateFuture {
-    shared_state: Arc<Mutex<SharedState>>,
+    state: Arc<Mutex<SharedState>>,
 }
 
 struct SharedState {
@@ -21,11 +22,11 @@ struct SharedState {
 impl Future for &UpdateFuture {
     type Output = Update;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Update> {
-        let mut shared_state = self.shared_state.lock().unwrap();
-        if shared_state.completed {
-            Poll::Ready(Update::AddChild)
+        let mut state = self.state.lock().unwrap();
+        if state.completed {
+            Poll::Ready(state.update)
         } else {
-            shared_state.waker = Some(cx.waker().clone());
+            state.waker = Some(cx.waker().clone());
             Poll::Pending
         }
     }
@@ -33,20 +34,20 @@ impl Future for &UpdateFuture {
 
 impl UpdateFuture {
     pub fn new() -> Self {
-        let shared_state = Arc::new(Mutex::new(SharedState {
+        let state = Arc::new(Mutex::new(SharedState {
             completed: false,
-            update: Update::AddChild,
+            update: Update::None,
             waker: None,
         }));
-        Self { shared_state }
+        Self { state }
     }
 
     pub fn update(&self, update: Update) {
-        let thread_shared_state = self.shared_state.clone();
-        let mut shared_state = thread_shared_state.lock().unwrap();
-        shared_state.completed = true;
-        shared_state.update = update;
-        if let Some(waker) = shared_state.waker.take() {
+        let thread_state = self.state.clone();
+        let mut state = thread_state.lock().unwrap();
+        state.completed = true;
+        state.update = update;
+        if let Some(waker) = state.waker.take() {
             waker.wake()
         }
     }
@@ -79,6 +80,7 @@ impl<H, E> Recipe<H, E> for UpdateSub where H: Hasher {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Update {
-    AddChild,
+    AddChild(Nodes, u64, u64),
     SetState,
+    None
 }

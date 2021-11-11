@@ -9,25 +9,23 @@ use super::state::Align;
 use super::app::Message;
 
 pub struct NodeGraph {
-    pub update: Option<Box<dyn FnMut()>>,
     pub body: Node,
     nodes: HashMap<u64, NodeProto>,
     rand: rngs::ThreadRng,
 }
 
 impl NodeGraph {
-    pub fn new() -> Self {
-        let mut rand = rand::thread_rng();
+    pub fn new(id: u64) -> Self {
+        let rand = rand::thread_rng();
 
         let proto = NodeProto {
-            rid: rand.gen(),
+            rid: id,
             path: vec![],
-            // node: Nodes::Div
         };
         let body = Node::Div(DivNode::new());
         let mut nodes = HashMap::new();
         nodes.insert(proto.rid, proto);
-        Self { nodes, body, rand, update: None }
+        Self { nodes, body, rand }
     }
 
     pub fn create_proto(&mut self) -> u64 {
@@ -62,9 +60,6 @@ impl NodeGraph {
         match node1 {
             Node::Div(div) => div.children.push(node2),
             _ => panic!(),
-        };
-        if let Some(update) = &mut self.update {
-            (**update)();
         };
         proto
     }
